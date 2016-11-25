@@ -45,7 +45,6 @@ local MakeMaid do
 	function MakeMaid()
 		return setmetatable({
 			Tasks = {};
-			Instances = {};
 		}, mt)
 	end
 end
