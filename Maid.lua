@@ -1,52 +1,52 @@
-local MakeMaid do
-	local index = {
-		GiveTask = function(self, Task)
-			local n = #self.Tasks + 1
-			self.Tasks[n] = Task
-			return n
-		end;
-		
-		DoCleaning = function(self)
-			local Tasks = self.Tasks
-			for Name, Task in next, Tasks do
-				if type(Task) == "function" then
-					Task()
-				else
-					Task:Disconnect()
-				end
-				Tasks[Name] = nil
-			end
-		end;
-	};
-	index.Disconnect = index.DoCleaning -- Allow maids to be stacked.
+local Maid = {}
 
-	local mt = {
-		__index = function(self, k)
-			if index[k] then
-				return index[k]
-			else
-				return self.Tasks[k]
-			end
-		end;
-		
-		__newindex = function(self, k, v)
-			local Tasks = self.Tasks
-			if v == nil then
-				if type(Tasks[k]) ~= "function" and Tasks[k] then
-					Tasks[k]:Disconnect() -- disconnect if the task is an event
-				end
-			elseif Tasks[k] then
-				self[k] = nil -- clear previous task
-			end
-			Tasks[k] = v
-		end;
-	}
-
-	function MakeMaid()
-		return setmetatable({
-			Tasks = {};
-		}, mt)
-	end
+function Maid.new()
+	return setmetatable({{}}, Maid)
 end
 
-return {new = MakeMaid}
+function Maid:__index(i)
+	return Maid[i] or self[1][i]
+end
+
+function Maid:__newindex(i, v)
+	local Tasks = self[1]
+	if v == nil then -- Clear previous Task
+		local Task = Tasks[i]
+		if Task then
+			local Type = typeof(Task)
+			if Type == "RBXScriptConnection" then
+				Task:Disconnect()
+			elseif Type == "Instance" then
+				Task:Destroy()
+			end
+		end
+	elseif Tasks[i] then
+		self[i] = nil -- Clear previous task
+	end
+	Tasks[i] = v
+end
+
+function Maid:GiveTask(Task)
+	local n = #self[1] + 1
+	self[1][n] = Task
+	return n
+end
+
+function Maid:DoCleaning()
+	local Tasks = self[1]
+	for Name, Task in next, Tasks do
+		local Type = typeof(Task)
+		if Type == "RBXScriptConnection" then
+			Task:Disconnect()
+		elseif Type == "Instance" then
+			Task:Destroy()
+		else
+			Task()
+		end
+		Tasks[Name] = nil
+	end
+end
+Maid.Disconnect = Maid.DoCleaning
+Maid.Destroy = Maid.DoCleaning
+
+return Maid
