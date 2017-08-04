@@ -14,15 +14,15 @@ void Maid:DoCleaning()
 // Disconnects all Events, Destroys all Objects, and calls all functions stored as Tasks
 // Maid:Destroy() and Maid:Disconnect() are the same thing
 
-void Maid:LinkToInstance(Instance)
-// Makes the Maid clean up when the instance is destroyed
-// @param Instance Instance The Instance the Maid will wait for to be Destroyed
- 
 void Maid:Destroy()
 // Same as DoCleaning()
 
 void Maid:Disconnect()
 // Same as DoCleaning()
+
+// [Planned] void Maid:LinkToInstance(Instance)
+// Makes the Maid clean up when the instance is destroyed
+// @param Instance Instance The Instance the Maid will wait for to be Destroyed
 ```
 ```
 Maid[key] = (function)            Adds a function to call at cleanup
