@@ -1,4 +1,4 @@
--- Credit to Stravant
+-- @original Stravant
 
 --[[
 	class Signal
@@ -11,17 +11,17 @@
 		is almost never the desired behavior.
 		
 	API:
-		void fire(...)
+		void Fire(...)
 			Fire the event with the given arguments.
 			
-		Connection connect(Function handler)
+		RbxScriptSignal/Connection Connect(Function handler)
 			Connect a new handler to the event, returning a connection object that
 			can be disconnected.
 			
-		... wait()
+		<Variant> Wait()
 			Wait for fire to be called, and return the arguments it was given.
 			
-		Destroy()
+		void Destroy()
 			Disconnects all connected events to the signal and voids the signal as unusable.
 --]]
 
@@ -44,8 +44,7 @@ end
 
 function Signal:Wait()
 	self.BindableEvent.Event:Wait()
-	if not self.BindData then error("Missing arg data, likely due to :TweenSize/Position corrupting threadrefs.", 2) end
-	return unpack(self.BindData)
+	return unpack(self.BindData or error("Missing arg data, likely due to :TweenSize/Position corrupting threadrefs.", 2))
 end
 
 function Signal:Destroy()
@@ -53,7 +52,10 @@ function Signal:Destroy()
 	for a = 1, #Connections do
 		Connections[a]:Disconnect()
 	end
-	self.BindData = self.BindableEvent:Destroy()
+	self.BindableEvent:Destroy()
+	self.BindData = nil
+	self.BindableEvent = nil
+	self.Connections = nil
 end
 
 function Signal.new()
