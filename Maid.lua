@@ -1,4 +1,6 @@
 -- Object for managing Cleanup
+-- @readme https://github.com/RoStrap/Events#maid
+
 local Maid = {}
 
 -- Maid[key] = (function)            Adds a function to call at cleanup
