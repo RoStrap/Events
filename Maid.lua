@@ -20,9 +20,9 @@ end
 -- @param Variant Task An object to be Destroyed, a Connection to be Disconnected, or function/callable table to be called
 -- @returns the index the Task was placed at
 function Maid:GiveTask(Task)
-	local n = #self._Tasks + 1
-	self._Tasks[n] = Task
-	return n
+	local TaskId = #self._Tasks + 1
+	self._Tasks[TaskId] = Task
+	return TaskId
 end
 
 --- Makes the Maid clean up when the instance is destroyed
@@ -123,6 +123,8 @@ end
 
 --- Internal __newindex metamethod
 function Maid:__newindex(i, v)
+	if Maid[i] ~= nil then error(("[Maid] \"%s\" is reserved"):format(tostring(i)), 2) end
+
 	local Tasks = self._Tasks
 	local Task = Tasks[i]
 	if Task or v == nil then -- Clear previous Task
@@ -132,6 +134,8 @@ function Maid:__newindex(i, v)
 			Task:Disconnect()
 		elseif Type == "Instance" or IsTable and Task.Destroy then
 			Task:Destroy()
+		else
+			Task()
 		end
 	end
 	Tasks[i] = v
