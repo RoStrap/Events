@@ -1,6 +1,9 @@
 # Maid
 Manages the cleaning of events and other things.
 
+```lua
+local Maid = Resources:LoadLibrary("Maid")
+```
 ### API
 ```cs
 Maid Maid.new()
@@ -29,6 +32,6 @@ void Maid:Disconnect()
 Maid[key] = (function)            Adds a function to call at cleanup
 Maid[key] = (Instance)            Adds an Object to be Destroyed at cleanup
 Maid[key] = (RBXScriptConnection) Adds a connection to be Disconnected at cleanup
-Maid[key] = (Maid)                Maids can act as an event connection, allowing a Maid to have other maids to clean up.
+Maid[key] = (Maid)                Maids can act as an event connection, allowing a Maid to clean up other maids
 Maid[key] = nil                   Removes a named task. This cleans up the previous Maid[key]
 ```
