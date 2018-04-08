@@ -1,5 +1,7 @@
+-- BindableEvent Wrapper
+-- @original https://gist.github.com/Anaminus/afd813efc819bad8e560caea28942010
+
 --[[
-@original https://gist.github.com/Anaminus/afd813efc819bad8e560caea28942010
 Work in progress
 
 # Signal
@@ -48,7 +50,9 @@ local function Destruct(self)
 end
 
 local function Pack(...)
-	return {select("#", ...), ...}
+	local t = {...}
+	t.n = #t
+	return t
 end
 
 local PseudoConnection = {
