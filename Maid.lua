@@ -1,4 +1,4 @@
--- Object for managing Cleanup
+-- Connection cleanup manager class
 -- @readme https://github.com/RoStrap/Events#maid
 
 local Maid = {}
