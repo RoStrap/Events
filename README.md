@@ -35,3 +35,37 @@ Maid[key] = (RBXScriptConnection) Adds a connection to be Disconnected at cleanu
 Maid[key] = (Maid)                Maids can act as an event connection, allowing a Maid to clean up other maids
 Maid[key] = nil                   Removes a named task. This cleans up the previous Maid[key]
 ```
+
+# Signal
+API-compatible Roblox events
+
+#### The following is the documentation as written by Anaminus:
+
+Addresses two flaws in previous implementations:
+- Held a reference to the last set of fired arguments.
+- Arguments would be overridden if the signal was fired by a listener.
+## Synopsis
+	- signal = Signal(function, function)
+		Returns a new signal. Receives optional constructor and destructor
+		functions. The constructor is called when the number of
+		listeners/threads becomes greater than 0. The destructor is called
+		when then number of threads/listeners becomes 0. The destructor
+		receives as arguments the values returned by the constructor.
+	- Signal:Fire(...)
+		Fire the signal, passing the arguments to each listener and waiting
+		threads.
+	- ... = Signal:Wait()
+		Block the current thread until the signal is fired. Returns the
+		arguments passed to Fire.
+	- Signal:Destroy()
+		Disconnects all listeners and becomes unassociated with currently
+		blocked threads. The signal is still usable.
+	- connection = SignalEvent:Connect(function)
+		Sets a function to be called when the signal is fired. The listener
+		function receives the arguments passed to Fire. Returns a
+		SignalConnection.
+	- SignalConnection:Disconnect()
+		Disconnects the listener, causing it to no longer be called when the
+		signal is fired.
+	- bool = SignalConnection.Connected
+		Whether the listener is connected.
