@@ -1,6 +1,9 @@
 -- Connection cleanup manager class
 -- @readme https://github.com/RoStrap/Events#maid
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Table = Resources:LoadLibrary("Table")
 local Maid = {}
 
 -- Maid[key] = (function)            Adds a function to call at cleanup
@@ -123,7 +126,7 @@ end
 
 --- Internal __newindex metamethod
 function Maid:__newindex(i, v)
-	if Maid[i] ~= nil then error(("[Maid] \"%s\" is reserved"):format(tostring(i)), 2) end
+	if Maid[i] ~= nil then Debug.Error(("\"%s\" is reserved"):format(tostring(i))) end
 
 	local Tasks = self._Tasks
 	local Task = Tasks[i]
@@ -141,4 +144,4 @@ function Maid:__newindex(i, v)
 	Tasks[i] = v
 end
 
-return Maid
+return Table.Lock(Maid)
