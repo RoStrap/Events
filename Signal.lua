@@ -36,6 +36,9 @@ Addresses two flaws in previous implementations:
 		Whether the listener is connected.
 ]]
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
 local function Destruct(self)
 	if #self.Connections == 0 and self.Destructor and self.ConstructorData then
 		self:Destructor(unpack(self.ConstructorData))
@@ -78,6 +81,16 @@ local Signal = {
 		YieldingThreads = 0; -- Number of Threads waiting on the signal
 	}
 }
+
+function Signal.new(Constructor, Destructor)
+	return setmetatable({
+		Bindable = Instance.new("BindableEvent"); -- Dispatches scheduler-compatible Threads
+		Arguments = {}; -- Holds arguments for pending listener functions and Threads: [Id] = {#Connections + YieldingThreads, arguments}
+		Connections = {}; -- SignalConnections connected to the signal
+		Constructor = Constructor; -- Constructor function
+		Destructor = Destructor; -- Destructor function
+	}, Signal)
+end
 
 function Signal.__index:Connect(Function)
 	if #self.Connections == 0 and self.Constructor and not self.ConstructorData then
@@ -147,15 +160,4 @@ function Signal.__index:Destroy()
 	setmetatable(self, nil)
 end
 
-function Signal.new(Constructor, Destructor)
-	return setmetatable({
-		Bindable = Instance.new("BindableEvent"); -- Dispatches scheduler-compatible Threads
-		Arguments = {}; -- Holds arguments for pending listener functions and Threads: [Id] = {#Connections + YieldingThreads, arguments}
-		Connections = {}; -- SignalConnections connected to the signal
-		Constructor = Constructor; -- Constructor function
-		Destructor = Destructor; -- Destructor function
-	}, Signal)
-end
-
-return Signal
-		
+return Table.Lock(Signal)		
