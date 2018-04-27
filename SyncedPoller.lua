@@ -6,15 +6,15 @@ local HourDifference = math.floor((os.time() - tick()) / SecondsPerHour + 0.5) *
 local SyncedPoller = {}
 
 function SyncedPoller.new(Interval, Func)
-	-- Calls Func after one tick and every Interval seconds
+	-- Calls Func every Interval seconds
 	-- @param number Interval How often in seconds Func() should be called
 	-- @param function Func the function to call
 
 	spawn(function()
 		while true do
-			Func()
 			local t = tick() + HourDifference
 			wait(math.ceil(t / Interval) * Interval + 1 - t)
+			Func()
 		end
 	end)
 end
