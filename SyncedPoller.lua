@@ -1,5 +1,8 @@
 -- Polling synced to os.time()
 
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
 local tick = tick
 local wait = wait
 local ceil = math.ceil
@@ -28,4 +31,4 @@ function SyncedPoller.new(Interval, Func)
 	end)
 end
 
-return SyncedPoller
+return Table.Lock(SyncedPoller)
