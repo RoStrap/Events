@@ -1,40 +1,6 @@
--- BindableEvent Wrapper
+-- Connection-based Events via wrapped BindableEvents
+-- @author Validark
 -- @original https://gist.github.com/Anaminus/afd813efc819bad8e560caea28942010
-
---[[
-Work in progress
-
-# Signal
-API-compatible Roblox events.
-Addresses two flaws in previous implementations:
-- Held a reference to the last set of fired arguments.
-- Arguments would be overridden if the signal was fired by a listener.
-## Synopsis
-	- signal = Signal(function, function)
-		Returns a new signal. Receives optional constructor and destructor
-		functions. The constructor is called when the number of
-		listeners/threads becomes greater than 0. The destructor is called
-		when then number of threads/listeners becomes 0. The destructor
-		receives as arguments the values returned by the constructor.
-	- Signal:Fire(...)
-		Fire the signal, passing the arguments to each listener and waiting
-		threads.
-	- ... = Signal:Wait()
-		Block the current thread until the signal is fired. Returns the
-		arguments passed to Fire.
-	- Signal:Destroy()
-		Disconnects all listeners and becomes unassociated with currently
-		blocked threads. The signal is still usable.
-	- connection = SignalEvent:Connect(function)
-		Sets a function to be called when the signal is fired. The listener
-		function receives the arguments passed to Fire. Returns a
-		SignalConnection.
-	- SignalConnection:Disconnect()
-		Disconnects the listener, causing it to no longer be called when the
-		signal is fired.
-	- bool = SignalConnection.Connected
-		Whether the listener is connected.
-]]
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Table = Resources:LoadLibrary("Table")
@@ -92,8 +58,10 @@ function Signal.new(Constructor, Destructor)
 	}, Signal)
 end
 
-function Signal.__index:Connect(Function)
-	if #self.Connections == 0 and self.Constructor and not self.ConstructorData then
+function Signal.__index:Connect(Function, Arg)
+	local NumConnections = #self.Connections
+
+	if NumConnections == 0 and self.Constructor and not self.ConstructorData then
 		self.ConstructorData = {self:Constructor()}
 	end
 
@@ -109,20 +77,28 @@ function Signal.__index:Connect(Function)
 				Arguments[1] = ThreadsRemaining
 			end
 
-			Function(unpack(Arguments, 2))
+			if Arg then
+				Function(Arg, unpack(Arguments, 2))
+			else
+				Function(unpack(Arguments, 2))
+			end
 		end);
 	}, PseudoConnection)
 
-	self.Connections[#self.Connections + 1] = Connection
+	self.Connections[NumConnections + 1] = Connection
 	return Connection
 end
 
 function Signal.__index:Fire(...)
 	local Id = self.NextId
-	self.NextId = self.NextId + 1
-	self.Arguments[Id] = {#self.Connections + self.YieldingThreads, ...}
+	local NumConnectionsAndThreads = #self.Connections + self.YieldingThreads
+	self.NextId = Id + 1
+	self.Arguments[Id] = {NumConnectionsAndThreads, ...}
 	self.YieldingThreads = nil
-	self.Bindable:Fire(Id)
+
+	if NumConnectionsAndThreads > 0 then
+		self.Bindable:Fire(Id)
+	end
 end
 
 function Signal.__index:Wait()
@@ -160,4 +136,4 @@ function Signal.__index:Destroy()
 	setmetatable(self, nil)
 end
 
-return Table.Lock(Signal)		
+return Table.Lock(Signal)
