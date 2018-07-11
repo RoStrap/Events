@@ -1,3 +1,4 @@
+```lua
 -- Connection cleanup manager class
 -- @readme https://github.com/RoStrap/Events#maid
 
@@ -145,3 +146,4 @@ function Maid:__newindex(i, v)
 end
 
 return Table.Lock(Maid)
+```
