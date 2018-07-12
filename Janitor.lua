@@ -1,8 +1,9 @@
--- Object and Connection cleaner class
+-- Light-weight, flexible object for cleaning up connections, instances, etc.
 -- @author Validark
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Table = Resources:LoadLibrary("Table")
+local FastSpawn = Resources:LoadLibrary("FastSpawn")
 
 -- Just a reference that can't ever be accessed but will be used as an index for LinkToInstance
 local LinkToInstanceIndex = newproxy(false)
@@ -126,10 +127,7 @@ function Janitor.__index:LinkToInstance(Object, AllowMultiple)
 	-- We need to spawn a new Roblox Lua thread right now before any other code runs.
 	--  spawn() starts it on the next cycle or frame, coroutines don't have ROBLOX's coroutine.yield handler
 	--  The only option left is BindableEvents, which run as soon as they are called and use ROBLOX's yield
-	local QuickRobloxThreadSpawner = Instance.new("BindableEvent")
-	QuickRobloxThreadSpawner.Event:Connect(ChangedFunction)
-	QuickRobloxThreadSpawner:Fire(Reference.Value, Reference.Value.Parent)
-	QuickRobloxThreadSpawner:Destroy()
+	FastSpawn(ChangedFunction, Reference.Value, Reference.Value.Parent)
 
 	if AllowMultiple then -- Give Task to Janitor, cleanup this Connection upon cleanup
 		self:Add(ManualDisconnect, "Disconnect")
