@@ -8,25 +8,14 @@ local FastSpawn = Resources:LoadLibrary("FastSpawn")
 -- Just a reference that can't ever be accessed but will be used as an index for LinkToInstance
 local LinkToInstanceIndex = newproxy(false)
 
-local Janitors = setmetatable({}, {
-	__mode = "k";
-	__index = function(self, i)
-		local t = {}
-		self[i] = t
-		return t
-	end;
-})
-
+local Janitors = setmetatable({}, {__mode = "k"})
 local Janitor = {}
 Janitor.__index = {CurrentlyCleaning = true}
 
-local function Clean(Object, MethodName)
-	if MethodName == false then
-		Object()
-	else
-		Object[MethodName](Object)
-	end
-end
+local TypeDefaults = {
+	["function"] = true;
+	["RBXScriptConnection"] = "Disconnect";
+}
 
 function Janitor.new()
 	return setmetatable({CurrentlyCleaning = false}, Janitor)
@@ -35,20 +24,41 @@ end
 function Janitor.__index:Add(Object, MethodName, Index)
 	if Index then
 		self:Remove(Index)
-		Janitors[self][Index] = Object
+
+		local this = Janitors[self]
+
+		if not this then
+			this = {}
+			Janitors[self] = this
+		end
+
+		this[Index] = Object
 	end
 
-	self[Object] = MethodName or false
+	self[Object] = MethodName or TypeDefaults[typeof(Object)] or "Destroy"
+	return Object
 end
 
 function Janitor.__index:Remove(Index)
 	local this = Janitors[self]
-	local Object = this[Index]
 
-	if Object then
-		Clean(Object, self[Object])
-		this[Index] = nil
-		self[Object] = nil
+	if this then
+		local Object = this[Index]
+
+		if Object then
+			local MethodName = self[Object]
+
+			if MethodName then
+				if MethodName == true then
+					Object()
+				else
+					Object[MethodName](Object)
+				end
+				self[Object] = nil
+			end
+
+			this[Index] = nil
+		end
 	end
 end
 
@@ -57,13 +67,33 @@ function Janitor.__index:Cleanup()
 		self.CurrentlyCleaning = nil -- A little trick to exclude the Debouncer from the loop below AND set it to true via __index :)
 
 		for Object, MethodName in next, self do
-			Clean(Object, MethodName)
+			if MethodName == true then
+				Object()
+			else
+				Object[MethodName](Object)
+			end
 			self[Object] = nil
+		end
+
+		local this = Janitors[self]
+
+		if this then
+			for Index in next, this do
+				this[Index] = nil
+			end
+			Janitors[self] = nil
 		end
 
 		self.CurrentlyCleaning = false
 	end
 end
+
+function Janitor.__index:Destroy()
+	self:Cleanup()
+	setmetatable(self, nil)
+end
+
+Janitor.__call = Janitor.__index.Cleanup
 
 --- Makes the Janitor clean up when the instance is destroyed
 -- @param Instance Instance The Instance the Janitor will wait for to be Destroyed
