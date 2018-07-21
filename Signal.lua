@@ -4,21 +4,61 @@
 
 local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
 local Table = Resources:LoadLibrary("Table")
+local Debug = Resources:LoadLibrary("Debug")
+
+-- These hold references to metatables for after we lock __mt to a string
+local Signals = setmetatable({}, {__mode = "kv"})
+local PseudoConnections = setmetatable({}, {__mode = "kv"})
+
+local function BadIndex(_, i, t)
+	Debug.Error("%q is not a valid member of " .. (t or "RBXScriptSignal"), i)
+end
+
+local Event = setmetatable({}, {__index = BadIndex})
+
+function Event:Connect(Function, Arg)
+	return Signals[self]:Connect(Function, Arg)
+end
+
+function Event:Wait()
+	return Signals[self]:Wait()
+end
+
+local Signal = {
+	__index = {
+		NextId = 0; -- Holds the next Arguments ID
+		YieldingThreads = 0; -- Number of Threads waiting on the signal
+	}
+}
+
+local function GetArguments(self, Id)
+	local Arguments = self.Arguments[Id]
+	local ThreadsRemaining = Arguments.NumConnectionsAndThreads - 1
+
+	if ThreadsRemaining == 0 then
+		self.Arguments[Id] = nil
+	else
+		Arguments.NumConnectionsAndThreads = ThreadsRemaining
+	end
+
+	return unpack(Arguments, 1, Arguments.n)
+end
 
 local function Destruct(self)
-	if #self.Connections == 0 and self.Destructor and self.ConstructorData then
-		self:Destructor(unpack(self.ConstructorData))
+	local ConstructorData = self.ConstructorData
+	if self.Destructor and ConstructorData then
+		self:Destructor(unpack(ConstructorData, 1, ConstructorData.n))
 		self.ConstructorData = nil
 	end
 end
 
-local PseudoConnection = {
-	__index = {
-		Connected = true;
-	};
-}
+local function pack(...) -- This is useful because trailing nil's on the stack may be preserved
+	return {n = select("#", ...), ...}
+end
 
-function PseudoConnection.__index:Disconnect()
+local function Disconnect(self)
+	self = PseudoConnections[self]
+
 	if self.Connection then
 		self.Connection:Disconnect()
 		self.Connection = nil
@@ -29,71 +69,97 @@ function PseudoConnection.__index:Disconnect()
 	if Signal then
 		self.Connected = false
 		local Connections = Signal.Connections
+		local NumConnections = #Connections
 
-		for i = 1, #Connections do
+		for i = 1, NumConnections do
 			if Connections[i] == self then
 				table.remove(Connections, i)
 				break
 			end
 		end
 
-		self.Signal = Destruct(Signal)
+		if NumConnections == 0 then
+			Destruct(Signal)
+		end
+		self.Signal = nil
 	end
 end
 
-local Signal = {
-	__index = {
-		NextId = 0; -- Holds the next Arguments ID
-		YieldingThreads = 0; -- Number of Threads waiting on the signal
-	}
-}
+local function PseudoConnection__index(self, i)
+	if i == "Disconnect" then
+		return Disconnect
+	elseif i == "Connected" then
+		return PseudoConnections[self].Connected
+	else
+		BadIndex(self, i, "RBXScriptConnection")
+	end
+end
+
+local function RBXScriptConnectionToString()
+	return "RBXScriptConnection"
+end
+
+local function RBXScriptSignalToString()
+	return "RBXScriptSignal"
+end
 
 function Signal.new(Constructor, Destructor)
-	return setmetatable({
+	local self = setmetatable({
 		Bindable = Instance.new("BindableEvent"); -- Dispatches scheduler-compatible Threads
 		Arguments = {}; -- Holds arguments for pending listener functions and Threads: [Id] = {#Connections + YieldingThreads, arguments}
 		Connections = {}; -- SignalConnections connected to the signal
 		Constructor = Constructor; -- Constructor function
 		Destructor = Destructor; -- Destructor function
+		Event = newproxy(true); -- Event interface which can only access Connect() and Wait()
 	}, Signal)
+
+	local EventMt = getmetatable(self.Event)
+	EventMt.__index = Event
+	EventMt.__mt = "The metatable is locked"
+	EventMt.__type = "RBXScriptSignal"
+	EventMt.__tostring = RBXScriptSignalToString
+	Signals[self.Event] = self
+
+	return self
 end
 
 function Signal.__index:Connect(Function, Arg)
 	local NumConnections = #self.Connections
 
 	if NumConnections == 0 and self.Constructor and not self.ConstructorData then
-		self.ConstructorData = {self:Constructor()}
+		self.ConstructorData = pack(self:Constructor())
 	end
 
-	local Connection = setmetatable({
-		Signal = self;
-		Connection = self.Bindable.Event:Connect(function(Id)
-			local Arguments = self.Arguments[Id]
-			local ThreadsRemaining = Arguments[1] - 1
+	local Connection = newproxy(true)
+	local ConnectionMt = getmetatable(Connection)
+	ConnectionMt.Connected = true
+	ConnectionMt.__mt = "The metatable is locked"
+	ConnectionMt.__type = "RBXScriptConnection"
+	ConnectionMt.__tostring = RBXScriptConnectionToString
+	ConnectionMt.__index = PseudoConnection__index
+	ConnectionMt.Signal = self
+	ConnectionMt.Connection = self.Bindable.Event:Connect(function(Id)
+		if Arg then
+			Function(Arg, GetArguments(self, Id))
+		else
+			Function(GetArguments(self, Id))
+		end
+	end)
 
-			if ThreadsRemaining == 0 then
-				self.Arguments[Id] = nil
-			else
-				Arguments[1] = ThreadsRemaining
-			end
-
-			if Arg then
-				Function(Arg, unpack(Arguments, 2))
-			else
-				Function(unpack(Arguments, 2))
-			end
-		end);
-	}, PseudoConnection)
-
-	self.Connections[NumConnections + 1] = Connection
+	PseudoConnections[Connection] = ConnectionMt
+	self.Connections[NumConnections + 1] = ConnectionMt
 	return Connection
 end
 
 function Signal.__index:Fire(...)
 	local Id = self.NextId
+	local Stack = pack(...)
 	local NumConnectionsAndThreads = #self.Connections + self.YieldingThreads
+
+	Stack.NumConnectionsAndThreads = NumConnectionsAndThreads
+
 	self.NextId = Id + 1
-	self.Arguments[Id] = {NumConnectionsAndThreads, ...}
+	self.Arguments[Id] = Stack
 	self.YieldingThreads = nil
 
 	if NumConnectionsAndThreads > 0 then
@@ -103,17 +169,7 @@ end
 
 function Signal.__index:Wait()
 	self.YieldingThreads = self.YieldingThreads + 1
-	local Id = self.Bindable.Event:Wait()
-	local Arguments = self.Arguments[Id]
-	local ThreadsRemaining = Arguments[1] - 1
-
-	if Arguments[1] == 0 then
-		self.Arguments[Id] = nil
-	else
-		Arguments[1] = ThreadsRemaining
-	end
-
-	return unpack(Arguments, 2)
+	return GetArguments(self, self.Bindable.Event:Wait())
 end
 
 function Signal.__index:Destroy()
