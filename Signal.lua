@@ -6,7 +6,7 @@ local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Res
 local Table = Resources:LoadLibrary("Table")
 local Debug = Resources:LoadLibrary("Debug")
 
--- These hold references to metatables for after we lock __mt to a string
+-- These hold references to metatables for after we lock __metatable to a string
 local Signals = setmetatable({}, {__mode = "kv"})
 local PseudoConnections = setmetatable({}, {__mode = "kv"})
 
@@ -115,7 +115,7 @@ function Signal.new(Constructor, Destructor)
 
 	local EventMt = getmetatable(self.Event)
 	EventMt.__index = Event
-	EventMt.__mt = "The metatable is locked"
+	EventMt.__metatable = "The metatable is locked"
 	EventMt.__type = "RBXScriptSignal"
 	EventMt.__tostring = RBXScriptSignalToString
 	Signals[self.Event] = self
@@ -133,7 +133,7 @@ function Signal.__index:Connect(Function, Arg)
 	local Connection = newproxy(true)
 	local ConnectionMt = getmetatable(Connection)
 	ConnectionMt.Connected = true
-	ConnectionMt.__mt = "The metatable is locked"
+	ConnectionMt.__metatable = "The metatable is locked"
 	ConnectionMt.__type = "RBXScriptConnection"
 	ConnectionMt.__tostring = RBXScriptConnectionToString
 	ConnectionMt.__index = PseudoConnection__index
