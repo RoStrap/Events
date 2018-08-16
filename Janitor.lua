@@ -121,7 +121,7 @@ function Janitor.__index:LinkToInstance(Object, AllowMultiple)
 			return self:Cleanup()
 		elseif Obj == Reference.Value and not Par then
 			Obj = nil
-			coroutine.yield()  -- Push further execution of this script to the end of the current execution cycle
+			wait()  -- Push further execution of this script to the end of the current execution cycle
 					  --  This is needed because when the event first runs it's always still Connected
 			-- The object may have been reparented or the event manually disconnected or disconnected and ran in that time...
 			if (not Reference.Value or not Reference.Value.Parent) and ManualDisconnect.Connected then
