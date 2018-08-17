@@ -1,4 +1,4 @@
--- Connection-based Events via wrapped BindableEvents
+-- Connection-based PseudoEvents (BindableEvent wrapper)
 -- @author Validark
 -- @original https://gist.github.com/Anaminus/afd813efc819bad8e560caea28942010
 
@@ -7,7 +7,8 @@ local Table = Resources:LoadLibrary("Table")
 local Debug = Resources:LoadLibrary("Debug")
 
 -- These hold references to metatables for after we lock __metatable to a string
-local Signals = setmetatable({}, {__mode = "kv"})
+local Signals = setmetatable({}, {__mode = "k"})
+local EventInterfaces = setmetatable({}, {__mode = "kv"})
 local PseudoConnections = setmetatable({}, {__mode = "kv"})
 
 local function BadIndex(_, i, t)
@@ -17,11 +18,11 @@ end
 local Event = setmetatable({}, {__index = BadIndex})
 
 function Event:Connect(Function, Arg)
-	return Signals[self]:Connect(Function, Arg)
+	return EventInterfaces[self]:Connect(Function, Arg)
 end
 
 function Event:Wait()
-	return Signals[self]:Wait()
+	return EventInterfaces[self]:Wait()
 end
 
 local Signal = {
@@ -118,9 +119,14 @@ function Signal.new(Constructor, Destructor)
 	EventMt.__metatable = "The metatable is locked"
 	EventMt.__type = "RBXScriptSignal"
 	EventMt.__tostring = RBXScriptSignalToString
-	Signals[self.Event] = self
+	EventInterfaces[self.Event] = self
+	Signals[self] = true
 
 	return self
+end
+
+function Signal.IsA(Object)
+	return Signals[Object] or false
 end
 
 function Signal.__index:Connect(Function, Arg)
