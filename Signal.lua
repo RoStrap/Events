@@ -75,13 +75,14 @@ local function Disconnect(self)
 		for i = 1, NumConnections do
 			if Connections[i] == self then
 				table.remove(Connections, i)
+
+				if NumConnections == 1 then
+					Destruct(Signal)
+				end
 				break
 			end
 		end
 
-		if NumConnections == 0 then
-			Destruct(Signal)
-		end
 		self.Signal = nil
 	end
 end
