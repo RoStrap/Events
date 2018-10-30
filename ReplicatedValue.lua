@@ -181,7 +181,7 @@ end
 function ReplicatedValue:Bind(callback, selfArg)
 	checkDestroy(self)
 
-	local doCallback = function (...)
+	local function doCallback(...)
 		if selfArg then
 			return callback(selfArg, ...)
 		else
@@ -215,7 +215,7 @@ end
 --- Runs a hook of a specific type.
 function ReplicatedValue:RunHooks(name)
 	if self.Hooks[name] ~= nil then
-		for _, hook in ipairs(self.Hooks[name]) do
+		for _, hook in next, self.Hooks[name] do
 			hook(self.Value)
 		end
 	end
@@ -223,7 +223,7 @@ end
 
 local function getNestedValue(object, propertyPath)
 	local value = object
-	for _, field in ipairs(propertyPath) do
+	for _, field in next, propertyPath do
 		value = value[field]
 
 		if value == nil then
@@ -252,10 +252,8 @@ function ReplicatedValue:GetPropertyChangedSignal(...)
 end
 
 if IsServer then
-	RemoteFunction.OnServerInvoke = function(_, name, scope)
-		if type(name) ~= "string" or scope == nil then
-			return
-		end
+	function RemoteFunction.OnServerInvoke(_, name, scope)
+		if type(name) ~= "string" or scope == nil then return end
 
 		if rawget(Values, name) and Values[name][scope] then
 			local value = Values[name][scope]
