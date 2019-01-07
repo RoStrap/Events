@@ -1,3 +1,7 @@
+-- A server-authoritative value replicated across the network
+-- @author Evaera
+-- @documentation below
+
 --[[
 	A ReplicatedValue is a server-authoritative value which is replicated across
 	the network. The client can request the value if it doesn't have it yet, and
