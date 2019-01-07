@@ -1,7 +1,6 @@
---[[
-	A class that wraps a connection, only staying connected if the condition
-	is true. Calling :Connect() while already connected is ignored.
-]]
+-- A class that wraps a connection, only staying connected if the condition is true
+-- @author Evaera
+-- Note: Calling :Connect() while already connected is ignored.
 
 local ConditionalConnection = {}
 ConditionalConnection.__index = ConditionalConnection
